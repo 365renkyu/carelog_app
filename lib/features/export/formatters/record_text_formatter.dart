@@ -2,6 +2,7 @@ import 'package:ikuji_kiroku_app/core/extensions/datetime_extension.dart';
 import 'package:ikuji_kiroku_app/data/models/daily_record_detail.dart';
 import 'package:ikuji_kiroku_app/data/models/mood.dart';
 import 'package:ikuji_kiroku_app/features/export/export_field.dart';
+import 'package:ikuji_kiroku_app/core/constants/app_strings.dart';
 
 class RecordTextFormatter {
   RecordTextFormatter._();
@@ -17,7 +18,7 @@ class RecordTextFormatter {
 
     _appendIfEnabled(buf, fields, ExportField.mood, () {
       final mood = Mood.fromValue(detail.record.mood);
-      return '機嫌: ${mood.label}';
+      return '■機嫌: ${mood.label}\n';
     });
 
     _appendIfEnabled(buf, fields, ExportField.sleepLogs, () {
@@ -32,7 +33,7 @@ class RecordTextFormatter {
             : '就寝中';
         return '  ${bedtime}入眠: $start → 起床: $end'; // ignore: unnecessary_brace_in_string_interps
       });
-      return '睡眠:\n${lines.join('\n')}';
+      return '■睡眠:\n${lines.join('\n')}\n';
     });
 
     _appendIfEnabled(buf, fields, ExportField.mealLogs, () {
@@ -41,19 +42,19 @@ class RecordTextFormatter {
         (log) =>
             '  ${DateTime.parse(log.mealTime).toDisplayTime()}: ${log.content}',
       );
-      return '食事:\n${lines.join('\n')}';
+      return '■食事:\n${lines.join('\n')}\n';
     });
 
-    _appendTextIfEnabled(
-        buf, fields, ExportField.notes, 'その日の様子', detail.record.notes);
-    _appendTextIfEnabled(
-        buf, fields, ExportField.achievements, 'できたこと', detail.record.achievements);
-    _appendTextIfEnabled(
-        buf, fields, ExportField.cuteMoments, 'かわいいと感じたこと', detail.record.cuteMoments);
-    _appendTextIfEnabled(
-        buf, fields, ExportField.concerns, '課題・悩み', detail.record.concerns);
-    _appendTextIfEnabled(
-        buf, fields, ExportField.therapyMemo, '療育メモ', detail.record.therapyMemo);
+    _appendTextIfEnabled(buf, fields, ExportField.notes,
+        '■${AppStrings.fieldNotes}', '${detail.record.notes}\n');
+    _appendTextIfEnabled(buf, fields, ExportField.achievements,
+        '■${AppStrings.fieldAchievements}', '${detail.record.achievements}\n');
+    _appendTextIfEnabled(buf, fields, ExportField.cuteMoments,
+        '■${AppStrings.fieldCuteMoments}', '${detail.record.cuteMoments}\n');
+    _appendTextIfEnabled(buf, fields, ExportField.concerns,
+        '■${AppStrings.fieldConcerns}', '${detail.record.concerns}\n');
+    _appendTextIfEnabled(buf, fields, ExportField.therapyMemo,
+        '■${AppStrings.fieldTherapyMemo}', '${detail.record.therapyMemo}\n');
 
     return buf.toString().trimRight();
   }
@@ -66,8 +67,7 @@ class RecordTextFormatter {
     required Set<ExportField> fields,
   }) {
     final buf = StringBuffer();
-    buf.writeln(
-        '【${from.toDisplayDate()} 〜 ${to.toDisplayDate()}】');
+    buf.writeln('【${from.toDisplayDate()} 〜 ${to.toDisplayDate()}】');
     buf.writeln('');
 
     for (final detail in details) {

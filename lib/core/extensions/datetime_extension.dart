@@ -4,7 +4,7 @@ extension DateTimeExtension on DateTime {
   /// SQLite 保存用キー 'YYYY-MM-DD'
   String toDateKey() => DateFormat('yyyy-MM-dd').format(this);
 
-  /// 表示用日付 '2024年1月1日（月）'
+  /// 表示用日付 '2024年1月1日(月)'
   String toDisplayDate() => DateFormat('yyyy/M/d(E)', 'ja').format(this);
 
   /// 表示用月 '2024年1月'
@@ -13,8 +13,8 @@ extension DateTimeExtension on DateTime {
   /// 表示用時刻 'HH:mm'
   String toDisplayTime() => DateFormat('HH:mm').format(this);
 
-  /// 欠席連絡用 'M月d日'
-  String toAbsenceDate() => DateFormat('M月d日', 'ja').format(this);
+  /// 欠席連絡用 'M月d日(月)'
+  String toAbsenceDate() => DateFormat('M月d日(E)', 'ja').format(this);
 
   /// ISO8601文字列に変換
   String toIso8601() => toIso8601String();

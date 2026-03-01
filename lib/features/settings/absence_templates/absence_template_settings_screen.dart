@@ -35,12 +35,6 @@ class AbsenceTemplateSettingsScreen extends ConsumerWidget {
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                     SizedBox(height: 8),
-                    Text(
-                      AppStrings.placeholderHint,
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               )
@@ -92,9 +86,7 @@ class AbsenceTemplateSettingsScreen extends ConsumerWidget {
       ),
     );
     if (confirmed == true) {
-      await ref
-          .read(absenceTemplateEditorProvider(null).notifier)
-          .delete(id);
+      await ref.read(absenceTemplateEditorProvider(null).notifier).delete(id);
     }
   }
 }
@@ -205,7 +197,7 @@ class _TemplateEditorState extends ConsumerState<_TemplateEditor> {
           Wrap(
             spacing: 6,
             runSpacing: 4,
-            children: ['{date}', '{startTime}', '{endTime}', '{facilityName}']
+            children: ['[日付]', '[開始時刻]', '[終了時刻]', '[事業所名]']
                 .map(
                   (ph) => ActionChip(
                     label: Text(ph, style: const TextStyle(fontSize: 12)),
@@ -236,8 +228,7 @@ class _TemplateEditorState extends ConsumerState<_TemplateEditor> {
         text.substring(0, safePos) + placeholder + text.substring(safePos);
     controller.value = TextEditingValue(
       text: newText,
-      selection: TextSelection.collapsed(
-          offset: safePos + placeholder.length),
+      selection: TextSelection.collapsed(offset: safePos + placeholder.length),
     );
   }
 

@@ -46,6 +46,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: Column(
         children: [
           TableCalendar(
+            locale: 'Ja_JP',
             firstDay: DateTime(2020),
             lastDay: DateTime(2100),
             focusedDay: _focusedDay,
@@ -206,7 +207,7 @@ class _DayPanel extends ConsumerWidget {
             Expanded(
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('スケジュール追加'),
+                label: const Text('予定追加'),
                 onPressed: () => Navigator.pushNamed(
                   context,
                   AppRoutes.therapyScheduleEdit,

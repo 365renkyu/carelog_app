@@ -1,7 +1,7 @@
 class AppStrings {
   AppStrings._();
 
-  static const String appTitle = '育児きろく';
+  static const String appTitle = 'けあろぐ';
 
   // BottomNav
   static const String navCalendar = 'カレンダー';
@@ -19,11 +19,11 @@ class AppStrings {
   static const String fieldMood = '機嫌';
   static const String fieldSleep = '睡眠';
   static const String fieldMeal = '食事';
-  static const String fieldNotes = 'その日の様子';
+  static const String fieldNotes = '今日のできごと';
   static const String fieldAchievements = 'できたこと';
-  static const String fieldCuteMoments = 'かわいいと感じたこと';
-  static const String fieldConcerns = '課題・悩み';
-  static const String fieldTherapyMemo = '療育メモ';
+  static const String fieldCuteMoments = '好きだなと思ったこと';
+  static const String fieldConcerns = '気になっていること';
+  static const String fieldTherapyMemo = '学んだこと・もらったアドバイス';
 
   // 睡眠
   static const String bedtimeStartTime = '寝かしつけ開始';
@@ -40,11 +40,10 @@ class AppStrings {
   // 療育スケジュール
   static const String scheduleTitle = '療育スケジュール';
   static const String scheduleAdd = 'スケジュールを追加';
-  static const String facilityName = '施設名';
+  static const String facilityName = '事業所名';
   static const String scheduleMemo = 'メモ';
   static const String scheduleWarningTitle = '複数登録の確認';
-  static const String scheduleWarningBody =
-      '原則として、1日に複数事業所の利用はできません。登録を続けますか？';
+  static const String scheduleWarningBody = '原則として、1日に複数事業所の利用はできません。登録を続けますか？';
   static const String scheduleWarningConfirm = '続けて登録';
   static const String scheduleWarningCancel = 'キャンセル';
 
@@ -60,10 +59,6 @@ class AppStrings {
   static const String settingsTitle = '設定';
   static const String settingsTemplates = '定型文管理';
   static const String settingsTemplateAdd = '定型文を追加';
-
-  // プレースホルダー説明
-  static const String placeholderHint =
-      '使用できるプレースホルダー: {date} {startTime} {endTime} {facilityName}';
 
   // 共通
   static const String save = '保存';
