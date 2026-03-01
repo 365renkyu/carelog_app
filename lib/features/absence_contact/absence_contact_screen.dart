@@ -8,6 +8,7 @@ import 'package:ikuji_kiroku_app/data/models/absence_template.dart';
 import 'package:ikuji_kiroku_app/data/models/therapy_schedule.dart';
 import 'package:ikuji_kiroku_app/features/absence_contact/absence_contact_provider.dart';
 import 'package:ikuji_kiroku_app/features/therapy_schedule/therapy_schedule_provider.dart';
+import 'package:ikuji_kiroku_app/data/providers/repository_providers.dart';
 
 class AbsenceContactScreen extends ConsumerWidget {
   const AbsenceContactScreen({super.key, required this.date});
@@ -20,105 +21,133 @@ class AbsenceContactScreen extends ConsumerWidget {
     final notifier = ref.read(absenceContactProvider.notifier);
     final schedules = ref.watch(daySchedulesProvider(date.toDateKey()));
     final templates = ref.watch(absenceTemplatesProvider);
+    final childName = ref.watch(currentChildProvider).valueOrNull?.name ?? '';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${date.toDisplayDate()} 欠席連絡'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // スケジュール選択
-          Text(
-            AppStrings.absenceSelectSchedule,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 8),
-          schedules.when(
-            loading: () => const CircularProgressIndicator(),
-            error: (e, _) => Text('エラー: $e'),
-            data: (list) => list.isEmpty
-                ? const Text(
-                    'この日のスケジュールがありません',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  )
-                : Column(
-                    children: list
-                        .map(
-                          (s) => _ScheduleTile(
-                            schedule: s,
-                            isSelected: state.selectedSchedule?.id == s.id,
-                            onTap: () => notifier.selectSchedule(s),
-                          ),
-                        )
-                        .toList(),
-                  ),
-          ),
-          const Divider(height: 32),
-
-          // 定型文選択
-          Text(
-            AppStrings.absenceSelectTemplate,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 8),
-          templates.when(
-            loading: () => const CircularProgressIndicator(),
-            error: (e, _) => Text('エラー: $e'),
-            data: (list) => list.isEmpty
-                ? const Text(
-                    '定型文がありません。設定から追加してください。',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  )
-                : Column(
-                    children: list
-                        .map(
-                          (t) => _TemplateTile(
-                            template: t,
-                            isSelected: state.selectedTemplate?.id == t.id,
-                            onTap: () => notifier.selectTemplate(t),
-                          ),
-                        )
-                        .toList(),
-                  ),
-          ),
-          const Divider(height: 32),
-
-          // プレビュー
-          if (state.previewText != null) ...[
-            Text(
-              AppStrings.absencePreview,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
+        leadingWidth: 120,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BackButton(),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.divider),
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: SelectableText(
-                state.previewText!,
-                style: const TextStyle(fontSize: 14, height: 1.7),
+              child: Text(
+                childName,
+                style: const TextStyle(fontSize: 13, color: Colors.white),
               ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.copy_outlined),
-              label: const Text(AppStrings.absenceCopy),
-              onPressed: () => _copy(context, state.previewText!),
-            ),
-          ] else
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'スケジュールと定型文を選択してください',
-                  style: TextStyle(color: AppColors.textSecondary),
+          ],
+        ),
+        title: const Text('欠席連絡'),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // スケジュール選択
+                Text(
+                  AppStrings.absenceSelectSchedule,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-              ),
+                const SizedBox(height: 8),
+                schedules.when(
+                  loading: () => const CircularProgressIndicator(),
+                  error: (e, _) => Text('エラー: $e'),
+                  data: (list) => list.isEmpty
+                      ? const Text(
+                          'この日のスケジュールがありません',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: list
+                              .map(
+                                (s) => _ScheduleTile(
+                                  schedule: s,
+                                  isSelected:
+                                      state.selectedSchedule?.id == s.id,
+                                  onTap: () => notifier.selectSchedule(s),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                ),
+                const Divider(height: 32),
+
+                // 定型文選択
+                Text(
+                  AppStrings.absenceSelectTemplate,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                templates.when(
+                  loading: () => const CircularProgressIndicator(),
+                  error: (e, _) => Text('エラー: $e'),
+                  data: (list) => list.isEmpty
+                      ? const Text(
+                          '定型文がありません。設定から追加してください。',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: list
+                              .map(
+                                (t) => _TemplateTile(
+                                  template: t,
+                                  isSelected:
+                                      state.selectedTemplate?.id == t.id,
+                                  onTap: () => notifier.selectTemplate(t),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                ),
+                const Divider(height: 32),
+
+                // プレビュー
+                if (state.previewText != null) ...[
+                  Text(
+                    AppStrings.absencePreview,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: SelectableText(
+                      state.previewText!,
+                      style: const TextStyle(fontSize: 14, height: 1.7),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.copy_outlined),
+                    label: const Text(AppStrings.absenceCopy),
+                    onPressed: () => _copy(context, state.previewText!),
+                  ),
+                ] else
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'スケジュールと定型文を選択してください',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );

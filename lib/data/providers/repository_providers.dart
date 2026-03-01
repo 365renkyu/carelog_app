@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ikuji_kiroku_app/data/database/dao/absence_template_dao.dart';
+import 'package:ikuji_kiroku_app/data/database/dao/child_dao.dart';
 import 'package:ikuji_kiroku_app/data/database/dao/daily_record_dao.dart';
 import 'package:ikuji_kiroku_app/data/database/dao/meal_log_dao.dart';
 import 'package:ikuji_kiroku_app/data/database/dao/sleep_log_dao.dart';
 import 'package:ikuji_kiroku_app/data/database/dao/therapy_schedule_dao.dart';
+import 'package:ikuji_kiroku_app/data/models/child.dart';
 import 'package:ikuji_kiroku_app/data/repositories/absence_template_repository.dart';
 import 'package:ikuji_kiroku_app/data/repositories/absence_template_repository_impl.dart';
 import 'package:ikuji_kiroku_app/data/repositories/record_repository.dart';
@@ -33,6 +35,10 @@ final absenceTemplateDaoProvider = Provider<AbsenceTemplateDao>(
   (_) => const AbsenceTemplateDao(),
 );
 
+final childDaoProvider = Provider<ChildDao>(
+  (_) => const ChildDao(),
+);
+
 // ─── Repositories ────────────────────────────────────────────────────────────
 
 final recordRepositoryProvider = Provider<RecordRepository>((ref) {
@@ -59,3 +65,9 @@ final absenceTemplateRepositoryProvider =
 
 // 現在の操作対象の子供ID（将来の複数人対応に向けたシングルトン）
 final currentChildIdProvider = Provider<String>((_) => 'default_child');
+
+/// 現在の子供情報（ニックネーム・生年月日）
+final currentChildProvider = FutureProvider<Child?>((ref) async {
+  final childId = ref.watch(currentChildIdProvider);
+  return ref.read(childDaoProvider).findById(childId);
+});

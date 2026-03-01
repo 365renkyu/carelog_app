@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ikuji_kiroku_app/core/constants/app_colors.dart';
 import 'package:ikuji_kiroku_app/core/constants/app_strings.dart';
 
-/// 24時間表示のドラムロール+手入力時間ピッカーをボトムシートで表示する。
+/// 24時間表示のドラムロール時間ピッカーをボトムシートで表示する。
 ///
 /// [label]: ボトムシートのタイトル
 /// [initialTime]: 初期値（null の場合は現在時刻）
@@ -44,11 +44,6 @@ class _TimePickerBottomSheetState extends State<_TimePickerBottomSheet> {
   late FixedExtentScrollController _hourController;
   late FixedExtentScrollController _minuteController;
 
-  // 手入力テキストフィールド
-  final _textController = TextEditingController();
-  bool _textMode = false; // true = 手入力モード
-  String? _textError;
-
   @override
   void initState() {
     super.initState();
@@ -56,65 +51,26 @@ class _TimePickerBottomSheetState extends State<_TimePickerBottomSheet> {
     _minute = widget.initialTime.minute;
     _hourController = FixedExtentScrollController(initialItem: _hour);
     _minuteController = FixedExtentScrollController(initialItem: _minute);
-    _textController.text = _formatTime(_hour, _minute);
   }
 
   @override
   void dispose() {
     _hourController.dispose();
     _minuteController.dispose();
-    _textController.dispose();
     super.dispose();
   }
 
-  String _formatTime(int h, int m) =>
-      '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
-
-  void _onTextChanged(String value) {
-    setState(() => _textError = null);
-    final parts = value.split(':');
-    if (parts.length == 2) {
-      final h = int.tryParse(parts[0]);
-      final m = int.tryParse(parts[1]);
-      if (h != null && m != null && h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-        _hour = h;
-        _minute = m;
-        _hourController.jumpToItem(h);
-        _minuteController.jumpToItem(m);
-      }
-    }
-  }
-
-  void _validateAndSubmit() {
-    if (_textMode) {
-      final value = _textController.text;
-      final parts = value.split(':');
-      if (parts.length != 2) {
-        setState(() => _textError = '例: 09:30');
-        return;
-      }
-      final h = int.tryParse(parts[0]);
-      final m = int.tryParse(parts[1]);
-      if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
-        setState(() => _textError = '0〜23時、0〜59分で入力してください');
-        return;
-      }
-      _hour = h;
-      _minute = m;
-    }
+  void _submit() {
     Navigator.pop(context, TimeOfDay(hour: _hour, minute: _minute));
   }
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      padding: EdgeInsets.only(bottom: bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -129,147 +85,105 @@ class _TimePickerBottomSheetState extends State<_TimePickerBottomSheet> {
             ),
           ),
 
-          // タイトル + 手入力切り替えボタン
+          // タイトル
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _textMode = !_textMode;
-                      if (_textMode) {
-                        _textController.text =
-                            _formatTime(_hour, _minute);
-                        _textError = null;
-                      }
-                    });
-                  },
-                  child: Text(_textMode ? 'ドラムロール' : '手入力'),
-                ),
-              ],
+              ),
             ),
           ),
 
           const Divider(height: 1),
 
-          // ── ドラムロールモード ──────────────────────────────────
-          if (!_textMode) ...[
-            SizedBox(
-              height: 200,
-              child: Row(
-                children: [
-                  // 時 (0 〜 23)
-                  Expanded(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // 選択ハイライト
-                        Container(
-                          height: 44,
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+          // ドラムロール
+          SizedBox(
+            height: 200,
+            child: Row(
+              children: [
+                // 時 (0 〜 23)
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        height: 44,
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        CupertinoPicker(
-                          scrollController: _hourController,
-                          itemExtent: 44,
-                          onSelectedItemChanged: (i) =>
-                              setState(() => _hour = i),
-                          children: List.generate(
-                            24,
-                            (i) => Center(
-                              child: Text(
-                                i.toString().padLeft(2, '0'),
-                                style: const TextStyle(
-                                    fontSize: 24,
-                                    color: AppColors.textPrimary),
-                              ),
+                      ),
+                      CupertinoPicker(
+                        scrollController: _hourController,
+                        itemExtent: 44,
+                        onSelectedItemChanged: (i) =>
+                            setState(() => _hour = i),
+                        children: List.generate(
+                          24,
+                          (i) => Center(
+                            child: Text(
+                              i.toString().padLeft(2, '0'),
+                              style: const TextStyle(
+                                  fontSize: 24,
+                                  color: AppColors.textPrimary),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-
-                  // コロン
-                  const Text(
-                    ':',
-                    style: TextStyle(
-                        fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
-
-                  // 分 (0 〜 59)
-                  Expanded(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          height: 44,
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        CupertinoPicker(
-                          scrollController: _minuteController,
-                          itemExtent: 44,
-                          onSelectedItemChanged: (i) =>
-                              setState(() => _minute = i),
-                          children: List.generate(
-                            60,
-                            (i) => Center(
-                              child: Text(
-                                i.toString().padLeft(2, '0'),
-                                style: const TextStyle(
-                                    fontSize: 24,
-                                    color: AppColors.textPrimary),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // ── 手入力モード ────────────────────────────────────────
-          if (_textMode)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 32, vertical: 24),
-              child: TextFormField(
-                controller: _textController,
-                keyboardType: TextInputType.datetime,
-                autofocus: true,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 32, letterSpacing: 4),
-                decoration: InputDecoration(
-                  hintText: '09:30',
-                  errorText: _textError,
-                  hintStyle: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 32),
                 ),
-                onChanged: _onTextChanged,
-                onFieldSubmitted: (_) => _validateAndSubmit(),
-              ),
+
+                // コロン
+                const Text(
+                  ':',
+                  style: TextStyle(
+                      fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+
+                // 分 (0 〜 59)
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        height: 44,
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      CupertinoPicker(
+                        scrollController: _minuteController,
+                        itemExtent: 44,
+                        onSelectedItemChanged: (i) =>
+                            setState(() => _minute = i),
+                        children: List.generate(
+                          60,
+                          (i) => Center(
+                            child: Text(
+                              i.toString().padLeft(2, '0'),
+                              style: const TextStyle(
+                                  fontSize: 24,
+                                  color: AppColors.textPrimary),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+          ),
 
           // 決定 / キャンセル
           Padding(
@@ -285,7 +199,7 @@ class _TimePickerBottomSheetState extends State<_TimePickerBottomSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _validateAndSubmit,
+                    onPressed: _submit,
                     child: const Text('決定'),
                   ),
                 ),

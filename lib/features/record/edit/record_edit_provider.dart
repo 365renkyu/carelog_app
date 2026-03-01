@@ -161,29 +161,24 @@ class RecordEditNotifier extends AutoDisposeFamilyNotifier<RecordEditState, Date
 
       await repo.saveRecord(record);
 
-      // 既存ログを削除して再挿入（差分管理より確実）
+      // 既存レコードのログを全削除して再挿入（新規追加/編集/削除を一括反映）
+      if (state.existingRecordId != null) {
+        await repo.deleteAllSleepLogs(recordId);
+        await repo.deleteAllMealLogs(recordId);
+      }
+
       for (final log in state.sleepLogs) {
-        final normalized = log.copyWith(
+        await repo.saveSleepLog(log.copyWith(
           dailyRecordId: recordId,
           childId: childId,
-        );
-        if (state.existingRecordId != null) {
-          await repo.updateSleepLog(normalized);
-        } else {
-          await repo.saveSleepLog(normalized);
-        }
+        ));
       }
 
       for (final log in state.mealLogs) {
-        final normalized = log.copyWith(
+        await repo.saveMealLog(log.copyWith(
           dailyRecordId: recordId,
           childId: childId,
-        );
-        if (state.existingRecordId != null) {
-          await repo.updateMealLog(normalized);
-        } else {
-          await repo.saveMealLog(normalized);
-        }
+        ));
       }
     } finally {
       state = state.copyWith(isSaving: false);

@@ -12,12 +12,14 @@ class AppTheme {
         ),
         scaffoldBackgroundColor: AppColors.background,
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.background,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.primaryLight,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: AppColors.primary,
           elevation: 0,
-          centerTitle: false,
+          centerTitle: true,
+          toolbarHeight: 44,
           titleTextStyle: TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.primary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),

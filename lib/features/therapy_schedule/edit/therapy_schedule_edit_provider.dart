@@ -69,7 +69,7 @@ class TherapyScheduleEditNotifier
   void setRepeatType(String v) {
     state = state.copyWith(
       repeatType: v,
-      // weekly 以外では曜日をクリア
+      // weekly のみ曜日を使用（それ以外はクリア）
       repeatDayOfWeek: v == 'weekly' ? (state.repeatDayOfWeek ?? state.date.weekday - 1) : null,
     );
   }
@@ -81,6 +81,16 @@ class TherapyScheduleEditNotifier
       state.endTime.isNotEmpty &&
       state.facilityName.isNotEmpty &&
       (state.repeatType != 'weekly' || state.repeatDayOfWeek != null);
+
+  /// 繰り返し種別の表示名
+  static String repeatTypeLabel(String type) {
+    switch (type) {
+      case 'weekly': return '毎週';
+      case 'daily': return '毎日';
+      case 'monthly': return '毎月';
+      default: return '繰り返さない';
+    }
+  }
 
   /// 保存前に同日の既存スケジュール件数を返す（警告ダイアログ制御用）
   Future<int> countExistingOnDate() async {

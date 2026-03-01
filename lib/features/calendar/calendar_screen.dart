@@ -5,6 +5,7 @@ import 'package:ikuji_kiroku_app/core/constants/app_colors.dart';
 import 'package:ikuji_kiroku_app/core/constants/app_strings.dart';
 import 'package:ikuji_kiroku_app/core/extensions/datetime_extension.dart';
 import 'package:ikuji_kiroku_app/core/router/app_router.dart';
+import 'package:ikuji_kiroku_app/data/providers/repository_providers.dart';
 import 'package:ikuji_kiroku_app/features/calendar/calendar_provider.dart';
 import 'package:ikuji_kiroku_app/features/therapy_schedule/edit/therapy_schedule_edit_provider.dart';
 
@@ -25,10 +26,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final schedules = ref.watch(monthSchedulesProvider(_focusedDay));
 
     // スケジュールがある日付のセット
-    final scheduleDates = schedules.valueOrNull
-            ?.map((s) => s.date)
-            .toSet() ??
-        {};
+    final scheduleDates =
+        schedules.valueOrNull?.map((s) => s.date).toSet() ?? {};
 
     return Scaffold(
       appBar: AppBar(
@@ -62,8 +61,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
-              todayTextStyle:
-                  TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+              todayTextStyle: TextStyle(
+                  color: AppColors.primary, fontWeight: FontWeight.bold),
               selectedDecoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
@@ -145,8 +144,7 @@ class _DayPanel extends ConsumerWidget {
     final dateKey = selectedDay.toDateKey();
     final schedules =
         ref.watch(monthSchedulesProvider(selectedDay)).valueOrNull ?? [];
-    final daySchedules =
-        schedules.where((s) => s.date == dateKey).toList();
+    final daySchedules = schedules.where((s) => s.date == dateKey).toList();
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -168,24 +166,34 @@ class _DayPanel extends ConsumerWidget {
                 title: Row(
                   children: [
                     Text(s.facilityName),
-                    if (s.repeatType == 'weekly') ...[
+                    if (s.repeatType != 'none') ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.repeat, size: 14,
-                          color: AppColors.textSecondary),
+                      const Icon(Icons.repeat,
+                          size: 14, color: AppColors.textSecondary),
                     ],
                   ],
                 ),
                 subtitle: Text('${s.startTime} 〜 ${s.endTime}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  onPressed: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.therapyScheduleEdit,
-                    arguments: TherapyScheduleEditArgs(
-                      scheduleId: s.id,
-                      initialDate: selectedDay,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.therapyScheduleEdit,
+                        arguments: TherapyScheduleEditArgs(
+                          scheduleId: s.id,
+                          initialDate: selectedDay,
+                        ),
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: AppColors.error),
+                      onPressed: () => _confirmDelete(context, ref, s.id),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -235,5 +243,33 @@ class _DayPanel extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    String scheduleId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text(AppStrings.confirmDelete),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(AppStrings.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text(AppStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(therapyScheduleRepositoryProvider).delete(scheduleId);
+      ref.invalidate(monthSchedulesProvider);
+    }
   }
 }

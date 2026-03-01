@@ -12,6 +12,7 @@ class AppColors {
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color divider = Color(0xFFE5E7EB);
   static const Color error = Color(0xFFEF4444);
+  static const Color errorLight = Color(0xFFFEE2E2);
 
   // 機嫌カラー
   static const Color moodGood = Color(0xFF34D399);

@@ -61,6 +61,10 @@ class RecordRepositoryImpl implements RecordRepository {
   Future<void> deleteSleepLog(String logId) => sleepLogDao.delete(logId);
 
   @override
+  Future<void> deleteAllSleepLogs(String dailyRecordId) =>
+      sleepLogDao.deleteByDailyRecordId(dailyRecordId);
+
+  @override
   Future<void> saveMealLog(MealLog log) => mealLogDao.insert(log);
 
   @override
@@ -68,4 +72,8 @@ class RecordRepositoryImpl implements RecordRepository {
 
   @override
   Future<void> deleteMealLog(String logId) => mealLogDao.delete(logId);
+
+  @override
+  Future<void> deleteAllMealLogs(String dailyRecordId) =>
+      mealLogDao.deleteByDailyRecordId(dailyRecordId);
 }

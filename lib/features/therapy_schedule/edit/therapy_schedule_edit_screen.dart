@@ -3,23 +3,79 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ikuji_kiroku_app/core/constants/app_colors.dart';
 import 'package:ikuji_kiroku_app/core/constants/app_strings.dart';
 import 'package:ikuji_kiroku_app/core/extensions/datetime_extension.dart';
+import 'package:ikuji_kiroku_app/data/providers/repository_providers.dart';
+import 'package:ikuji_kiroku_app/features/calendar/calendar_provider.dart';
 import 'package:ikuji_kiroku_app/features/therapy_schedule/edit/therapy_schedule_edit_provider.dart';
 import 'package:ikuji_kiroku_app/shared/widgets/time_picker_bottom_sheet.dart';
 
-class TherapyScheduleEditScreen extends ConsumerWidget {
+class TherapyScheduleEditScreen extends ConsumerStatefulWidget {
   const TherapyScheduleEditScreen({super.key, this.args});
 
   final TherapyScheduleEditArgs? args;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(therapyScheduleEditProvider(args));
-    final notifier = ref.read(therapyScheduleEditProvider(args).notifier);
-    final isNew = args?.scheduleId == null;
+  ConsumerState<TherapyScheduleEditScreen> createState() =>
+      _TherapyScheduleEditScreenState();
+}
+
+class _TherapyScheduleEditScreenState
+    extends ConsumerState<TherapyScheduleEditScreen> {
+  late final TextEditingController _facilityNameController;
+  late final TextEditingController _memoController;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _facilityNameController = TextEditingController();
+    _memoController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _facilityNameController.dispose();
+    _memoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(therapyScheduleEditProvider(widget.args));
+    final notifier =
+        ref.read(therapyScheduleEditProvider(widget.args).notifier);
+    final isNew = widget.args?.scheduleId == null;
+    final childName =
+        ref.watch(currentChildProvider).valueOrNull?.name ?? '';
+
+    // 既存データをコントローラに反映（初回のみ）
+    if (!_initialized && state.existingId != null) {
+      _facilityNameController.text = state.facilityName;
+      _memoController.text = state.memo ?? '';
+      _initialized = true;
+    }
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 120,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BackButton(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                childName,
+                style: const TextStyle(fontSize: 13, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
         title: Text(isNew ? 'スケジュール追加' : 'スケジュール編集'),
+        centerTitle: true,
         actions: [
           if (!isNew)
             IconButton(
@@ -31,105 +87,116 @@ class TherapyScheduleEditScreen extends ConsumerWidget {
       ),
       body: state.isSaving
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : Column(
               children: [
-                // 日付
-                _DateField(
-                  date: state.date,
-                  onChanged: notifier.setDate,
-                ),
-                const SizedBox(height: 16),
-
-                // 施設名
-                TextFormField(
-                  initialValue: state.facilityName,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.facilityName,
-                  ),
-                  onChanged: notifier.setFacilityName,
-                ),
-                const SizedBox(height: 16),
-
-                // 開始・終了時刻
-                Row(
-                  children: [
-                    Expanded(
-                      child: _TimeField(
-                        label: '開始時刻',
-                        value: state.startTime,
-                        onChanged: notifier.setStartTime,
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      // 日付
+                      _DateField(
+                        date: state.date,
+                        onChanged: notifier.setDate,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _TimeField(
-                        label: '終了時刻',
-                        value: state.endTime,
-                        onChanged: notifier.setEndTime,
+                      const SizedBox(height: 16),
+
+                      // 施設名
+                      TextFormField(
+                        controller: _facilityNameController,
+                        decoration: const InputDecoration(
+                          labelText: AppStrings.facilityName,
+                        ),
+                        onChanged: notifier.setFacilityName,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                // メモ
-                TextFormField(
-                  initialValue: state.memo,
-                  decoration: const InputDecoration(
-                    labelText: '${AppStrings.scheduleMemo}（任意）',
-                  ),
-                  onChanged: notifier.setMemo,
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
+                      // 開始・終了時刻
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _TimeField(
+                              label: '開始時刻',
+                              value: state.startTime,
+                              onChanged: notifier.setStartTime,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _TimeField(
+                              label: '終了時刻',
+                              value: state.endTime,
+                              onChanged: notifier.setEndTime,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                // ── 繰り返し設定 ────────────────────────────────────
-                const Divider(),
-                const SizedBox(height: 8),
-                Text('繰り返し',
-                    style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: state.repeatType,
-                  decoration: const InputDecoration(labelText: '繰り返しの種類'),
-                  items: const [
-                    DropdownMenuItem(value: 'none', child: Text('繰り返さない')),
-                    DropdownMenuItem(value: 'weekly', child: Text('毎週')),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) notifier.setRepeatType(v);
-                  },
-                ),
-                if (state.repeatType == 'weekly') ...[
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<int>(
-                    value: state.repeatDayOfWeek,
-                    decoration: const InputDecoration(labelText: '曜日'),
-                    items: const [
-                      DropdownMenuItem(value: 0, child: Text('月曜日')),
-                      DropdownMenuItem(value: 1, child: Text('火曜日')),
-                      DropdownMenuItem(value: 2, child: Text('水曜日')),
-                      DropdownMenuItem(value: 3, child: Text('木曜日')),
-                      DropdownMenuItem(value: 4, child: Text('金曜日')),
-                      DropdownMenuItem(value: 5, child: Text('土曜日')),
-                      DropdownMenuItem(value: 6, child: Text('日曜日')),
+                      // メモ
+                      TextFormField(
+                        controller: _memoController,
+                        decoration: const InputDecoration(
+                          labelText: '${AppStrings.scheduleMemo}（任意）',
+                        ),
+                        onChanged: notifier.setMemo,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── 繰り返し設定 ────────────────────────────────────
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text('繰り返し',
+                          style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: state.repeatType,
+                        decoration: const InputDecoration(labelText: '繰り返しの種類'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'none', child: Text('繰り返さない')),
+                          DropdownMenuItem(value: 'daily', child: Text('毎日')),
+                          DropdownMenuItem(value: 'weekly', child: Text('毎週')),
+                          DropdownMenuItem(value: 'monthly', child: Text('毎月')),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) notifier.setRepeatType(v);
+                        },
+                      ),
+                      if (state.repeatType == 'weekly') ...[
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<int>(
+                          value: state.repeatDayOfWeek,
+                          decoration: const InputDecoration(labelText: '曜日'),
+                          items: const [
+                            DropdownMenuItem(value: 0, child: Text('月曜日')),
+                            DropdownMenuItem(value: 1, child: Text('火曜日')),
+                            DropdownMenuItem(value: 2, child: Text('水曜日')),
+                            DropdownMenuItem(value: 3, child: Text('木曜日')),
+                            DropdownMenuItem(value: 4, child: Text('金曜日')),
+                            DropdownMenuItem(value: 5, child: Text('土曜日')),
+                            DropdownMenuItem(value: 6, child: Text('日曜日')),
+                          ],
+                          onChanged: (v) => notifier.setRepeatDayOfWeek(v),
+                        ),
+                      ],
+                      if (state.repeatType != 'none') ...[
+                        const SizedBox(height: 12),
+                        _RepeatUntilField(
+                          value: state.repeatUntil,
+                          onChanged: notifier.setRepeatUntil,
+                        ),
+                      ],
+                      const SizedBox(height: 32),
+
+                      ElevatedButton(
+                        onPressed: notifier.isValid
+                            ? () => _save(context, notifier)
+                            : null,
+                        child: const Text(AppStrings.save),
+                      ),
                     ],
-                    onChanged: (v) => notifier.setRepeatDayOfWeek(v),
                   ),
-                  const SizedBox(height: 12),
-                  _RepeatUntilField(
-                    value: state.repeatUntil,
-                    onChanged: notifier.setRepeatUntil,
-                  ),
-                ],
-                const SizedBox(height: 32),
-
-                ElevatedButton(
-                  onPressed: notifier.isValid
-                      ? () => _save(context, notifier)
-                      : null,
-                  child: const Text(AppStrings.save),
                 ),
               ],
             ),
@@ -140,6 +207,32 @@ class TherapyScheduleEditScreen extends ConsumerWidget {
     BuildContext context,
     TherapyScheduleEditNotifier notifier,
   ) async {
+    // 開始〜終了時刻バリデーション
+    final state = ref.read(therapyScheduleEditProvider(widget.args));
+    if (state.startTime.isNotEmpty && state.endTime.isNotEmpty) {
+      final startParts = state.startTime.split(':');
+      final endParts = state.endTime.split(':');
+      final startMin = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+      final endMin = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+      if (startMin >= endMin) {
+        if (context.mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (_) => AlertDialog(
+              content: const Text('開始時刻が終了時刻より後になっています'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     // 同日スケジュールの重複チェック
     final existingCount = await notifier.countExistingOnDate();
     if (existingCount > 0 && context.mounted) {
@@ -148,7 +241,11 @@ class TherapyScheduleEditScreen extends ConsumerWidget {
     }
 
     await notifier.save();
-    if (context.mounted) Navigator.pop(context, true);
+    if (context.mounted) {
+      // カレンダーの表示を更新
+      ref.invalidate(monthSchedulesProvider);
+      Navigator.pop(context, true);
+    }
   }
 
   Future<bool> _showDuplicateWarning(BuildContext context) async {
@@ -195,7 +292,10 @@ class TherapyScheduleEditScreen extends ConsumerWidget {
     );
     if (confirmed == true) {
       await notifier.delete();
-      if (context.mounted) Navigator.pop(context, true);
+      if (context.mounted) {
+        ref.invalidate(monthSchedulesProvider);
+        Navigator.pop(context, true);
+      }
     }
   }
 }

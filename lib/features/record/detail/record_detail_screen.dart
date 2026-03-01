@@ -13,6 +13,7 @@ import 'package:ikuji_kiroku_app/features/export/export_settings_provider.dart';
 import 'package:ikuji_kiroku_app/features/export/formatters/record_text_formatter.dart';
 import 'package:ikuji_kiroku_app/features/record/detail/record_detail_provider.dart';
 import 'package:ikuji_kiroku_app/shared/widgets/section_header.dart';
+import 'package:ikuji_kiroku_app/data/providers/repository_providers.dart';
 
 class RecordDetailScreen extends ConsumerWidget {
   const RecordDetailScreen({super.key, required this.date});
@@ -22,10 +23,30 @@ class RecordDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(recordDetailProvider(date.toDateKey()));
+    final childName = ref.watch(currentChildProvider).valueOrNull?.name ?? '';
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 120,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BackButton(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                childName,
+                style: const TextStyle(fontSize: 13, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
         title: Text(date.toDisplayDate()),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -41,12 +62,18 @@ class RecordDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('エラー: $e')),
-        data: (d) => d == null
-            ? _EmptyState(date: date)
-            : _DetailBody(detail: d, date: date),
+      body: Column(
+        children: [
+          Expanded(
+            child: detail.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('エラー: $e')),
+              data: (d) => d == null
+                  ? _EmptyState(date: date)
+                  : _DetailBody(detail: d, date: date),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -63,7 +90,8 @@ class _EmptyState extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.note_add_outlined, size: 64, color: AppColors.textSecondary),
+          const Icon(Icons.note_add_outlined,
+              size: 64, color: AppColors.textSecondary),
           const SizedBox(height: 16),
           const Text('この日の記録はありません',
               style: TextStyle(color: AppColors.textSecondary)),
@@ -199,8 +227,7 @@ class _InfoCard extends StatelessWidget {
           children: [
             icon,
             const SizedBox(width: 12),
-            Text(label,
-                style: const TextStyle(color: AppColors.textSecondary)),
+            Text(label, style: const TextStyle(color: AppColors.textSecondary)),
             const Spacer(),
             Text(
               value,

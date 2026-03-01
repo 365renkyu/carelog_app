@@ -17,8 +17,10 @@ abstract class RecordRepository {
   Future<void> saveSleepLog(SleepLog log);
   Future<void> updateSleepLog(SleepLog log);
   Future<void> deleteSleepLog(String logId);
+  Future<void> deleteAllSleepLogs(String dailyRecordId);
 
   Future<void> saveMealLog(MealLog log);
   Future<void> updateMealLog(MealLog log);
   Future<void> deleteMealLog(String logId);
+  Future<void> deleteAllMealLogs(String dailyRecordId);
 }

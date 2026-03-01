@@ -37,7 +37,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     _to = today;
   }
 
-  bool get _isOver3Months {
+  bool get _isOver90Days {
     final diff = _to.difference(_from).inDays;
     return diff > 91;
   }
@@ -48,106 +48,113 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.exportTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          // 出力項目選択
-          Text(
-            AppStrings.exportFieldSettings,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 8),
-          ExportFieldToggle(
-            fields: ExportField.values,
-            selected: fields,
-            onToggle: ref.read(exportSettingsProvider.notifier).toggle,
-          ),
-          const Divider(height: 32),
-
-          // 日単位 / 期間指定 切り替え
-          SegmentedButton<_ExportMode>(
-            segments: const [
-              ButtonSegment(
-                value: _ExportMode.day,
-                label: Text('日単位'),
-                icon: Icon(Icons.today, size: 16),
-              ),
-              ButtonSegment(
-                value: _ExportMode.period,
-                label: Text('期間指定'),
-                icon: Icon(Icons.date_range, size: 16),
-              ),
-            ],
-            selected: {_mode},
-            onSelectionChanged: (s) => setState(() => _mode = s.first),
-          ),
-          const SizedBox(height: 16),
-
-          // 日付選択
-          if (_mode == _ExportMode.day) ...[
-            _DatePickerButton(
-              label: '日付',
-              date: _singleDay,
-              onChanged: (d) => setState(() => _singleDay = d),
-            ),
-          ] else ...[
-            Row(
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                Expanded(
-                  child: _DatePickerButton(
-                    label: '開始日',
-                    date: _from,
-                    onChanged: (d) => setState(() {
-                      _from = d;
-                      if (_to.isBefore(_from)) _to = _from;
-                    }),
+                // 出力項目選択
+                Text(
+                  AppStrings.exportFieldSettings,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                ExportFieldToggle(
+                  fields: ExportField.values,
+                  selected: fields,
+                  onToggle: ref.read(exportSettingsProvider.notifier).toggle,
+                ),
+                const Divider(height: 32),
+
+                // 日単位 / 期間指定 切り替え
+                SegmentedButton<_ExportMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: _ExportMode.day,
+                      label: Text('日単位'),
+                      icon: Icon(Icons.today, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: _ExportMode.period,
+                      label: Text('期間指定'),
+                      icon: Icon(Icons.date_range, size: 16),
+                    ),
+                  ],
+                  selected: {_mode},
+                  onSelectionChanged: (s) => setState(() => _mode = s.first),
+                ),
+                const SizedBox(height: 16),
+
+                // 日付選択
+                if (_mode == _ExportMode.day) ...[
+                  _DatePickerButton(
+                    label: '日付',
+                    date: _singleDay,
+                    onChanged: (d) => setState(() => _singleDay = d),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('〜'),
-                ),
-                Expanded(
-                  child: _DatePickerButton(
-                    label: '終了日',
-                    date: _to,
-                    onChanged: (d) => setState(() => _to = d),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DatePickerButton(
+                          label: '開始日',
+                          date: _from,
+                          onChanged: (d) => setState(() {
+                            _from = d;
+                            if (_to.isBefore(_from)) _to = _from;
+                          }),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('〜'),
+                      ),
+                      Expanded(
+                        child: _DatePickerButton(
+                          label: '終了日',
+                          date: _to,
+                          onChanged: (d) => setState(() => _to = d),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            if (_isOver3Months) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: Colors.orange.shade700, size: 18),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        '期間が3ヶ月を超えています。テキストが非常に長くなる場合があります。',
-                        style: TextStyle(fontSize: 12),
+                  if (_isOver90Days) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.error),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.error_outline,
+                              color: AppColors.error, size: 18),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '期間が90日を超えているため出力できません。期間を短くしてください。',
+                              style: TextStyle(
+                                  fontSize: 12, color: AppColors.error),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
-          ],
-          const SizedBox(height: 24),
+                ],
+                const SizedBox(height: 24),
 
-          // プレビュー & コピー
-          if (_mode == _ExportMode.day)
-            _DayExportBody(date: _singleDay, fields: fields)
-          else
-            _PeriodExportBody(from: _from, to: _to, fields: fields),
+                // プレビュー & コピー（3ヶ月超えの場合は非表示）
+                if (_mode == _ExportMode.day)
+                  _DayExportBody(date: _singleDay, fields: fields)
+                else if (!_isOver90Days)
+                  _PeriodExportBody(from: _from, to: _to, fields: fields),
+              ],
+            ),
+          ),
         ],
       ),
     );

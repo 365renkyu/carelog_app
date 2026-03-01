@@ -5,7 +5,7 @@ extension DateTimeExtension on DateTime {
   String toDateKey() => DateFormat('yyyy-MM-dd').format(this);
 
   /// 表示用日付 '2024年1月1日（月）'
-  String toDisplayDate() => DateFormat('yyyy年M月d日(E)', 'ja').format(this);
+  String toDisplayDate() => DateFormat('yyyy/M/d(E)', 'ja').format(this);
 
   /// 表示用月 '2024年1月'
   String toDisplayMonth() => DateFormat('yyyy年M月', 'ja').format(this);

@@ -197,10 +197,23 @@ class _TemplateEditorState extends ConsumerState<_TemplateEditor> {
             controller: _templateController,
             decoration: const InputDecoration(
               labelText: '定型文',
-              helperText: AppStrings.placeholderHint,
-              helperMaxLines: 2,
             ),
             maxLines: 6,
+          ),
+          const SizedBox(height: 8),
+          // プレースホルダーボタン
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: ['{date}', '{startTime}', '{endTime}', '{facilityName}']
+                .map(
+                  (ph) => ActionChip(
+                    label: Text(ph, style: const TextStyle(fontSize: 12)),
+                    onPressed: () => _insertPlaceholder(ph),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -209,6 +222,22 @@ class _TemplateEditorState extends ConsumerState<_TemplateEditor> {
           ),
         ],
       ),
+    );
+  }
+
+  void _insertPlaceholder(String placeholder) {
+    final controller = _templateController;
+    final text = controller.text;
+    final sel = controller.selection;
+    // カーソル位置（選択がない場合は末尾）
+    final pos = sel.isValid ? sel.baseOffset : text.length;
+    final safePos = pos.clamp(0, text.length);
+    final newText =
+        text.substring(0, safePos) + placeholder + text.substring(safePos);
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+          offset: safePos + placeholder.length),
     );
   }
 

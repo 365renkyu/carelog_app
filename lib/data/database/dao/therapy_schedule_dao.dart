@@ -11,6 +11,8 @@ class TherapyScheduleDao {
     String date,
   ) async {
     final db = await AppDatabase.instance.database;
+    final targetDate = DateTime.parse(date);
+
     // 通常スケジュール（当日）
     final rows = await db.query(
       _table,
@@ -20,22 +22,52 @@ class TherapyScheduleDao {
     );
     final direct = rows.map(TherapySchedule.fromJson).toList();
 
-    // 繰り返しスケジュール（当日が範囲内かつ曜日一致）
-    final targetDate = DateTime.parse(date);
+    // 毎週繰り返し
     final weekday = targetDate.weekday - 1; // 0=月〜6=日
-    final repeatRows = await db.query(
+    final weeklyRows = await db.query(
       _table,
-      where: "childId = ? AND repeatType = 'weekly' AND repeatDayOfWeek = ? AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
+      where: "childId = ? AND repeatType = 'weekly' AND repeatDayOfWeek = ? "
+          "AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
       whereArgs: [childId, weekday, date, date],
       orderBy: 'startTime ASC',
     );
-    final repeated = repeatRows
+    final weekly = weeklyRows
         .map(TherapySchedule.fromJson)
-        // 仮想的な「この日」のインスタンスとして date を上書き
         .map((s) => s.copyWith(date: date))
         .toList();
 
-    return [...direct, ...repeated]
+    // 毎日繰り返し
+    final dailyRows = await db.query(
+      _table,
+      where: "childId = ? AND repeatType = 'daily' "
+          "AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
+      whereArgs: [childId, date, date],
+      orderBy: 'startTime ASC',
+    );
+    final daily = dailyRows
+        .map(TherapySchedule.fromJson)
+        .map((s) => s.copyWith(date: date))
+        .toList();
+
+    // 毎月繰り返し（同じ日付の日、例: 毎月15日）
+    final dayOfMonth = targetDate.day;
+    final monthlyRows = await db.query(
+      _table,
+      where: "childId = ? AND repeatType = 'monthly' "
+          "AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
+      whereArgs: [childId, date, date],
+      orderBy: 'startTime ASC',
+    );
+    final monthly = monthlyRows
+        .map(TherapySchedule.fromJson)
+        .where((s) {
+          final originDay = DateTime.parse(s.date).day;
+          return originDay == dayOfMonth;
+        })
+        .map((s) => s.copyWith(date: date))
+        .toList();
+
+    return [...direct, ...weekly, ...daily, ...monthly]
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
@@ -45,6 +77,9 @@ class TherapyScheduleDao {
     String to,
   ) async {
     final db = await AppDatabase.instance.database;
+    final fromDate = DateTime.parse(from);
+    final toDate = DateTime.parse(to);
+
     // 通常スケジュール
     final rows = await db.query(
       _table,
@@ -54,28 +89,45 @@ class TherapyScheduleDao {
     );
     final direct = rows.map(TherapySchedule.fromJson).toList();
 
-    // 繰り返しスケジュールを期間内で展開
-    final repeatRows = await db.query(
+    // 毎週繰り返しを期間内で展開
+    final weeklyRows = await db.query(
       _table,
-      where: "childId = ? AND repeatType = 'weekly' AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
+      where: "childId = ? AND repeatType = 'weekly' "
+          "AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
       whereArgs: [childId, to, from],
       orderBy: 'startTime ASC',
     );
-    final repeatTemplates = repeatRows.map(TherapySchedule.fromJson).toList();
+    final weeklyTemplates = weeklyRows.map(TherapySchedule.fromJson).toList();
+
+    // 毎日繰り返しを期間内で展開
+    final dailyRows = await db.query(
+      _table,
+      where: "childId = ? AND repeatType = 'daily' "
+          "AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
+      whereArgs: [childId, to, from],
+      orderBy: 'startTime ASC',
+    );
+    final dailyTemplates = dailyRows.map(TherapySchedule.fromJson).toList();
+
+    // 毎月繰り返しを期間内で展開
+    final monthlyRows = await db.query(
+      _table,
+      where: "childId = ? AND repeatType = 'monthly' "
+          "AND date <= ? AND (repeatUntil IS NULL OR repeatUntil >= ?)",
+      whereArgs: [childId, to, from],
+      orderBy: 'startTime ASC',
+    );
+    final monthlyTemplates = monthlyRows.map(TherapySchedule.fromJson).toList();
 
     final expanded = <TherapySchedule>[];
-    final fromDate = DateTime.parse(from);
-    final toDate = DateTime.parse(to);
 
-    for (final tmpl in repeatTemplates) {
+    for (final tmpl in weeklyTemplates) {
       final startDate = DateTime.parse(tmpl.date);
       final endDate = tmpl.repeatUntil != null
           ? DateTime.parse(tmpl.repeatUntil!)
           : toDate;
-      final dayOfWeek = tmpl.repeatDayOfWeek; // 0=月〜6=日
+      final dayOfWeek = tmpl.repeatDayOfWeek;
       if (dayOfWeek == null) continue;
-
-      // 期間内の該当曜日を列挙
       DateTime cur = fromDate;
       while (!cur.isAfter(toDate) && !cur.isAfter(endDate)) {
         if (!cur.isBefore(startDate) && (cur.weekday - 1) == dayOfWeek) {
@@ -83,6 +135,46 @@ class TherapyScheduleDao {
           expanded.add(tmpl.copyWith(date: dateKey));
         }
         cur = cur.add(const Duration(days: 1));
+      }
+    }
+
+    for (final tmpl in dailyTemplates) {
+      final startDate = DateTime.parse(tmpl.date);
+      final endDate = tmpl.repeatUntil != null
+          ? DateTime.parse(tmpl.repeatUntil!)
+          : toDate;
+      DateTime cur = fromDate.isBefore(startDate) ? startDate : fromDate;
+      while (!cur.isAfter(toDate) && !cur.isAfter(endDate)) {
+        final dateKey = cur.toIso8601String().substring(0, 10);
+        expanded.add(tmpl.copyWith(date: dateKey));
+        cur = cur.add(const Duration(days: 1));
+      }
+    }
+
+    for (final tmpl in monthlyTemplates) {
+      final startDate = DateTime.parse(tmpl.date);
+      final endDate = tmpl.repeatUntil != null
+          ? DateTime.parse(tmpl.repeatUntil!)
+          : toDate;
+      final dayOfMonth = startDate.day;
+      // 期間内の各月について同日付を展開
+      int year = fromDate.year;
+      int month = fromDate.month;
+      while (true) {
+        // その月の最終日を超えないようにクランプ
+        final lastDay = DateTime(year, month + 1, 0).day;
+        final targetDay = dayOfMonth <= lastDay ? dayOfMonth : lastDay;
+        final candidate = DateTime(year, month, targetDay);
+        if (candidate.isAfter(toDate) || candidate.isAfter(endDate)) break;
+        if (!candidate.isBefore(fromDate) && !candidate.isBefore(startDate)) {
+          final dateKey = candidate.toIso8601String().substring(0, 10);
+          expanded.add(tmpl.copyWith(date: dateKey));
+        }
+        month++;
+        if (month > 12) {
+          month = 1;
+          year++;
+        }
       }
     }
 
