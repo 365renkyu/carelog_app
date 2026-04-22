@@ -11,7 +11,7 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>com.maiasauras.carelog</key>
-        <string>carelog_appstore</string>
+        <string>06bc928d-c5ca-44aa-9763-ceeccd3fcd20</string>
     </dict>
 </dict>
 </plist>

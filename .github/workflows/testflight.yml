@@ -34,16 +34,27 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
           echo $PROVISIONING_PROFILE_BASE64 | base64 --decode > profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      - name: Switch to manual signing
-        run: |
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = HUMN88CUA9;/g' ios/Runner.xcodeproj/project.pbxproj
-          plutil -replace AutomaticConfiguration -bool NO ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/06bc928d-c5ca-44aa-9763-ceeccd3fcd20.mobileprovision
 
       - name: Build IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: |
+          flutter build ipa --release \
+            --export-options-plist=ios/ExportOptions.plist \
+            --no-codesign
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath ../build/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER=06bc928d-c5ca-44aa-9763-ceeccd3fcd20 \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM=HUMN88CUA9
+          xcodebuild -exportArchive \
+            -archivePath ../build/Runner.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath ../build/ios/ipa
 
       - name: Upload to TestFlight
         env:
